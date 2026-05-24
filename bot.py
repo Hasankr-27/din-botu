@@ -1,8 +1,11 @@
 """
 İslami İçerik Telegram Botu
-- Her gün 20:00'de: Günün olayı + Ayet + Hadis + Dua
-- Her Perşembe 20:00'de: Günlük içerik + Cuma Vaazı
-- Her içeriğin altına otomatik reklam eklenir
+Zamanlama (Istanbul saati):
+  08:00 — Sabah: Olay + Ayet + Hadis + Dua + Vaaz + Reklam
+  12:00 — Öğle:  Ayet + Hadis + Dua + Reklam
+  15:00 — İkindi: Ayet + Hadis + Dua + Reklam
+  21:00 — Akşam/Yatsı: Ayet + Hadis + Dua + Reklam
+  Perşembe 20:00 — Sabah içeriği + Cuma Özel Vaazı + Reklam
 
 Kurulum:
   pip install aiogram anthropic apscheduler python-dotenv
@@ -29,10 +32,10 @@ import anthropic
 load_dotenv()
 
 TELEGRAM_BOT_TOKEN  = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")  # örn: @islamikanal
+TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 ANTHROPIC_API_KEY   = os.getenv("ANTHROPIC_API_KEY")
 
-# ─── Reklam Metni (buraya kendi reklamını yaz) ─────────────────────────────────
+# ─── Reklam Metni ──────────────────────────────────────────────────────────────
 
 REKLAM = """
 ━━━━━━━━━━━━━━━━━━━━━━━
@@ -47,65 +50,84 @@ REKLAM = """
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 log = logging.getLogger(__name__)
 
-bot        = Bot(token=TELEGRAM_BOT_TOKEN, parse_mode="Markdown")
-dp         = Dispatcher()
-ai_client  = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+bot       = Bot(token=TELEGRAM_BOT_TOKEN, parse_mode="Markdown")
+dp        = Dispatcher()
+ai_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
-# ─── Claude API Fonksiyonları ──────────────────────────────────────────────────
+# ─── Claude API ────────────────────────────────────────────────────────────────
 
-def claude_iste(prompt: str) -> str:
-    """Claude'a istek atar ve cevabı döndürür."""
+def claude_iste(prompt: str, max_tokens: int = 2000) -> str:
     mesaj = ai_client.messages.create(
         model="claude-sonnet-4-20250514",
-        max_tokens=2000,
+        max_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}]
     )
     return mesaj.content[0].text
 
+# ─── İçerik Üretici Fonksiyonlar ───────────────────────────────────────────────
 
-def gunluk_icerik_uret() -> str:
-    """Günün tarihine göre ayet, hadis, dua ve kısa vaaz üretir."""
+def ayet_hadis_dua_uret(vakit: str) -> str:
+    """Öğle, İkindi, Akşam/Yatsı için kısa içerik üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
-
     prompt = f"""
-Bugünün tarihi: {bugun}
+Bugünün tarihi: {bugun}, Vakit: {vakit}
 
-Aşağıdaki formatta Türkçe İslami günlük içerik oluştur.
+Aşağıdaki formatta kısa Türkçe İslami içerik oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
-Format:
-📅 *GÜNÜN OLAYI*
-[Bu tarihe yakın İslam tarihinden kısa, ilginç bir olay — 2-3 cümle]
+📖 *{vakit.upper()} AYETİ*
+[Vakitle uyumlu bir ayet — Türkçe meali + (Sure:Ayet)]
 
-📖 *GÜNÜN AYETİ*
-[Olayla bağlantılı bir ayet — Türkçe meali, parantez içinde Sure:Ayet numarası]
+📚 *HADİS*
+[Konuyla ilgili kısa bir hadis — Türkçe + (kaynak)]
 
-📚 *GÜNÜN HADİSİ*
-[Konuyla ilgili bir hadis — Türkçe, parantez içinde kaynak]
-
-🤲 *GÜNÜN DUASI*
-[Kısa, içten bir dua — Arapça orijinal + Türkçe anlamı]
-
-🕌 *GÜNÜN VAAZI*
-[Günün olayı veya ayetiyle bağlantılı, sade ve samimi 150-200 kelimelik kısa vaaz.
-Günlük hayata dokunan, herkesin anlayabileceği bir dil kullan.]
+🤲 *DUA*
+[Vakitle ilgili kısa dua — Arapça + Türkçe anlamı]
 
 Sadece içeriği yaz, başka açıklama ekleme.
 """
-    return claude_iste(prompt)
+    return claude_iste(prompt, max_tokens=800)
+
+
+def sabah_icerigi_uret() -> str:
+    """Sabah için olay + ayet + hadis + dua + vaaz üretir."""
+    bugun = datetime.now().strftime("%d %B %Y")
+    prompt = f"""
+Bugünün tarihi: {bugun}
+
+Aşağıdaki formatta Türkçe İslami sabah içeriği oluştur.
+Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
+
+📅 *GÜNÜN OLAYI*
+[Bu tarihe yakın İslam tarihinden kısa, ilginç bir olay — 2-3 cümle]
+
+📖 *SABAH AYETİ*
+[Olayla bağlantılı bir ayet — Türkçe meali + (Sure:Ayet)]
+
+📚 *HADİS*
+[Konuyla ilgili bir hadis — Türkçe + (kaynak)]
+
+🤲 *SABAH DUASI*
+[Sabah duası — Arapça + Türkçe anlamı]
+
+🕌 *GÜNÜN VAAZI*
+[150-200 kelime, sade ve samimi. Günün olayı veya ayetiyle bağlantılı.
+Günlük hayata dokunan, herkesin anlayabileceği bir dil.]
+
+Sadece içeriği yaz, başka açıklama ekleme.
+"""
+    return claude_iste(prompt, max_tokens=2000)
 
 
 def cuma_vaazi_uret() -> str:
-    """Haftanın temasına göre kapsamlı Cuma vaazı üretir."""
+    """Perşembe akşamı için derin Cuma vaazı üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
-
     prompt = f"""
 Bugünün tarihi: {bugun} (Perşembe — yarın Cuma)
 
 Türkçe, 500-600 kelimelik derin ve etkileyici bir Cuma vaazı yaz.
 Markdown kullan (Telegram uyumlu).
 
-Format:
 🕌 *CUMA VAAZI*
 *[Vaazın başlığı — dikkat çekici, düşündürücü]*
 
@@ -113,129 +135,158 @@ _"[Konuyla ilgili güçlü bir ayet meali]"_
 _(Sure adı, Ayet numarası)_
 
 *📖 Ayetin Tefsiri:*
-[Ayetin derinlemesine açıklaması — 3-4 cümle, alimlerden görüşler]
+[Derinlemesine açıklama — 3-4 cümle, alimlerden görüşler]
 
 *📚 Peygamberimizden:*
-[2 hadis — kaynaklarıyla birlikte, konuyla doğrudan ilgili]
+[2 hadis — kaynaklarıyla, konuyla doğrudan ilgili]
 
 *💭 Bugüne Yansıması:*
-[Modern hayattan somut örneklerle vaazın ana mesajı — 3 paragraf, samimi ve sade dil]
+[Modern hayattan somut örnekler — 3 paragraf, samimi dil]
 
 *🌟 Bu Haftanın Ameli:*
-[Okuyucunun bu hafta yapabileceği küçük ama anlamlı bir ibadet/davranış önerisi]
+[Bu hafta yapılabilecek küçük ama anlamlı bir ibadet/davranış önerisi]
 
 *🤲 Cuma Duası:*
 [Arapça dua + Türkçe anlamı]
 
-Tema: sabır, şükür, ihlas, tevbe, adalet, merhamet, birlik, dua, tevekkül gibi konulardan
-bu haftaya en uygun olanı seç. Vaaz hutbe tadında ama sohbet sıcaklığında olsun.
+Tema: sabır, şükür, ihlas, tevbe, adalet, merhamet, birlik, tevekkül vb.
+Hutbe tadında ama sohbet sıcaklığında olsun.
 Sadece vaazı yaz, başka açıklama ekleme.
 """
-    return claude_iste(prompt)
-
+    return claude_iste(prompt, max_tokens=2500)
 
 # ─── Gönderim Fonksiyonları ────────────────────────────────────────────────────
 
-async def gunluk_gondер():
-    """Her gün 20:00'de çalışır — günlük içerik gönderir."""
-    log.info("Günlük içerik gönderiliyor...")
+async def sabah_gonder():
+    """Her gün 08:00 — Olay + Ayet + Hadis + Dua + Vaaz"""
+    log.info("Sabah içeriği gönderiliyor...")
     try:
-        icerik = gunluk_icerik_uret()
-        tam_mesaj = icerik + "\n\n" + REKLAM
-        await bot.send_message(TELEGRAM_CHANNEL_ID, tam_mesaj)
-        log.info("✅ Günlük içerik gönderildi.")
+        icerik = sabah_icerigi_uret()
+        await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
+        log.info("✅ Sabah içeriği gönderildi.")
     except Exception as e:
-        log.error(f"❌ Günlük içerik hatası: {e}")
+        log.error(f"❌ Sabah hatası: {e}")
+
+
+async def ogle_gonder():
+    """Her gün 12:00 — Ayet + Hadis + Dua"""
+    log.info("Öğle içeriği gönderiliyor...")
+    try:
+        icerik = ayet_hadis_dua_uret("Öğle")
+        await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
+        log.info("✅ Öğle içeriği gönderildi.")
+    except Exception as e:
+        log.error(f"❌ Öğle hatası: {e}")
+
+
+async def ikindi_gonder():
+    """Her gün 15:00 — Ayet + Hadis + Dua"""
+    log.info("İkindi içeriği gönderiliyor...")
+    try:
+        icerik = ayet_hadis_dua_uret("İkindi")
+        await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
+        log.info("✅ İkindi içeriği gönderildi.")
+    except Exception as e:
+        log.error(f"❌ İkindi hatası: {e}")
+
+
+async def aksam_gonder():
+    """Her gün 21:00 — Ayet + Hadis + Dua"""
+    log.info("Akşam içeriği gönderiliyor...")
+    try:
+        icerik = ayet_hadis_dua_uret("Akşam/Yatsı")
+        await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
+        log.info("✅ Akşam içeriği gönderildi.")
+    except Exception as e:
+        log.error(f"❌ Akşam hatası: {e}")
 
 
 async def persembe_gonder():
-    """Her Perşembe 20:00'de çalışır — günlük içerik + Cuma vaazı gönderir."""
-    log.info("Perşembe içeriği gönderiliyor...")
+    """Her Perşembe 20:00 — Sabah içeriği + Cuma Vaazı"""
+    log.info("Perşembe/Cuma içeriği gönderiliyor...")
     try:
-        # 1. Günlük içerik
-        gunluk = gunluk_icerik_uret()
-        await bot.send_message(TELEGRAM_CHANNEL_ID, gunluk + "\n\n" + REKLAM)
-        log.info("✅ Günlük içerik gönderildi.")
+        # 1. Sabah içeriği
+        sabah = sabah_icerigi_uret()
+        await bot.send_message(TELEGRAM_CHANNEL_ID, sabah)
+        log.info("✅ Sabah içeriği gönderildi.")
 
-        await asyncio.sleep(3)  # Kısa bekleme
+        await asyncio.sleep(3)
 
         # 2. Cuma vaazı
         vaaz = cuma_vaazi_uret()
-        await bot.send_message(TELEGRAM_CHANNEL_ID, vaaz + "\n\n" + REKLAM)
+        await bot.send_message(TELEGRAM_CHANNEL_ID, vaaz)
         log.info("✅ Cuma vaazı gönderildi.")
 
     except Exception as e:
-        log.error(f"❌ Perşembe içerik hatası: {e}")
+        log.error(f"❌ Perşembe hatası: {e}")
 
-
-# ─── Zamanlayıcı Kurulumu ──────────────────────────────────────────────────────
+# ─── Zamanlayıcı ───────────────────────────────────────────────────────────────
 
 def zamanlayici_kur(scheduler: AsyncIOScheduler):
-    """
-    Zamanlama:
-    - Pazartesi–Çarşamba–Cuma–Cumartesi–Pazar: her gün 20:00 günlük içerik
-    - Perşembe: 20:00 günlük içerik + Cuma vaazı
-    """
+    tz = "Europe/Istanbul"
 
-    # Her gün 20:00 — günlük içerik (Perşembe hariç)
-    scheduler.add_job(
-        gunluk_gondер,
-        trigger="cron",
-        day_of_week="mon,tue,wed,fri,sat,sun",
-        hour=20,
-        minute=0,
-        timezone="Europe/Istanbul"
-    )
+    # 08:00 — Sabah (Perşembe hariç her gün)
+    scheduler.add_job(sabah_gonder, "cron",
+        day_of_week="mon,tue,wed,fri,sat,sun", hour=8, minute=0, timezone=tz)
 
-    # Perşembe 20:00 — günlük içerik + Cuma vaazı
-    scheduler.add_job(
-        persembe_gonder,
-        trigger="cron",
-        day_of_week="thu",
-        hour=20,
-        minute=0,
-        timezone="Europe/Istanbul"
-    )
+    # 12:00 — Öğle (her gün)
+    scheduler.add_job(ogle_gonder, "cron",
+        hour=12, minute=0, timezone=tz)
+
+    # 15:00 — İkindi (her gün)
+    scheduler.add_job(ikindi_gonder, "cron",
+        hour=15, minute=0, timezone=tz)
+
+    # 21:00 — Akşam/Yatsı (her gün)
+    scheduler.add_job(aksam_gonder, "cron",
+        hour=21, minute=0, timezone=tz)
+
+    # Perşembe 20:00 — Sabah içeriği + Cuma vaazı
+    scheduler.add_job(persembe_gonder, "cron",
+        day_of_week="thu", hour=20, minute=0, timezone=tz)
 
     log.info("⏰ Zamanlayıcı kuruldu.")
 
-
-# ─── Test Komutu (/test) ───────────────────────────────────────────────────────
+# ─── Test Komutları ────────────────────────────────────────────────────────────
 
 @dp.message()
-async def test_komutu(message: Message):
-    """
-    Bot'u test etmek için:
-    /test_gunluk  → günlük içerik önizle
-    /test_vaaz    → Cuma vaazı önizle
-    /test_gonder  → kanala gerçekten gönder
-    """
-    if message.text == "/test_gunluk":
+async def komutlar(message: Message):
+    if message.text == "/start":
+        await message.answer(
+            "🤖 *İslami İçerik Botu Aktif*\n\n"
+            "📅 Günlük program:\n"
+            "• 08:00 — Olay + Ayet + Hadis + Dua + Vaaz\n"
+            "• 12:00 — Öğle Ayeti + Hadis + Dua\n"
+            "• 15:00 — İkindi Ayeti + Hadis + Dua\n"
+            "• 21:00 — Akşam Ayeti + Hadis + Dua\n"
+            "• Perşembe 20:00 — Sabah içeriği + Cuma Vaazı\n\n"
+            "Test komutları:\n"
+            "`/test_sabah` — sabah içeriği\n"
+            "`/test_ogle` — öğle içeriği\n"
+            "`/test_ikindi` — ikindi içeriği\n"
+            "`/test_aksam` — akşam içeriği\n"
+            "`/test_cuma` — Cuma vaazı\n"
+            "`/test_gonder` — Perşembe içeriğini kanala gönder"
+        )
+    elif message.text == "/test_sabah":
         await message.answer("⏳ Üretiliyor...")
-        icerik = gunluk_icerik_uret()
-        await message.answer(icerik + "\n\n" + REKLAM)
-
-    elif message.text == "/test_vaaz":
-        await message.answer("⏳ Vaaz üretiliyor...")
-        vaaz = cuma_vaazi_uret()
-        await message.answer(vaaz + "\n\n" + REKLAM)
-
+        await message.answer(sabah_icerigi_uret())
+    elif message.text == "/test_ogle":
+        await message.answer("⏳ Üretiliyor...")
+        await message.answer(ayet_hadis_dua_uret("Öğle"))
+    elif message.text == "/test_ikindi":
+        await message.answer("⏳ Üretiliyor...")
+        await message.answer(ayet_hadis_dua_uret("İkindi"))
+    elif message.text == "/test_aksam":
+        await message.answer("⏳ Üretiliyor...")
+        await message.answer(ayet_hadis_dua_uret("Akşam/Yatsı"))
+    elif message.text == "/test_cuma":
+        await message.answer("⏳ Cuma vaazı üretiliyor...")
+        await message.answer(cuma_vaazi_uret())
     elif message.text == "/test_gonder":
         await message.answer("📤 Kanala gönderiliyor...")
         await persembe_gonder()
         await message.answer("✅ Gönderildi!")
-
-    elif message.text == "/start":
-        await message.answer(
-            "🤖 *İslami İçerik Botu Aktif*\n\n"
-            "📅 Her gün 20:00'de içerik gönderilir\n"
-            "🕌 Her Perşembe 20:00'de Cuma vaazı eklenir\n\n"
-            "Test komutları:\n"
-            "`/test_gunluk` — içerik önizle\n"
-            "`/test_vaaz` — vaaz önizle\n"
-            "`/test_gonder` — kanala gönder"
-        )
-
 
 # ─── Ana Döngü ─────────────────────────────────────────────────────────────────
 
@@ -243,10 +294,8 @@ async def main():
     scheduler = AsyncIOScheduler()
     zamanlayici_kur(scheduler)
     scheduler.start()
-
     log.info("🚀 Bot başlatıldı — Ctrl+C ile durdur")
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
