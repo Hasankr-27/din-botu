@@ -18,11 +18,14 @@ Kurulum:
 
 import asyncio
 import logging
+import sys
 from datetime import datetime
 from dotenv import load_dotenv
 import os
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
 from aiogram.types import Message
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import anthropic
@@ -34,6 +37,17 @@ load_dotenv()
 TELEGRAM_BOT_TOKEN  = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 ANTHROPIC_API_KEY   = os.getenv("ANTHROPIC_API_KEY")
+
+# Gerekli değişkenleri doğrula
+_eksik = [k for k, v in {
+    "TELEGRAM_BOT_TOKEN": TELEGRAM_BOT_TOKEN,
+    "TELEGRAM_CHANNEL_ID": TELEGRAM_CHANNEL_ID,
+    "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY,
+}.items() if not v]
+
+if _eksik:
+    print(f"HATA: .env dosyasında eksik değişkenler: {', '.join(_eksik)}")
+    sys.exit(1)
 
 # ─── Reklam Metni ──────────────────────────────────────────────────────────────
 
@@ -50,7 +64,10 @@ REKLAM = """
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 log = logging.getLogger(__name__)
 
-bot       = Bot(token=TELEGRAM_BOT_TOKEN, parse_mode="Markdown")
+bot       = Bot(
+    token=TELEGRAM_BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN)
+)
 dp        = Dispatcher()
 ai_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -58,7 +75,7 @@ ai_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 def claude_iste(prompt: str, max_tokens: int = 2000) -> str:
     mesaj = ai_client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
         max_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -161,9 +178,11 @@ async def sabah_gonder():
     """Her gün 08:00 — Olay + Ayet + Hadis + Dua + Vaaz"""
     log.info("Sabah içeriği gönderiliyor...")
     try:
-        icerik = sabah_icerigi_uret()
+        icerik = await asyncio.to_thread(sabah_icerigi_uret)
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
-        log.info("✅ Sabah içeriği gönderildi.")
+        await asyncio.sleep(2)
+        await bot.send_message(TELEGRAM_CHANNEL_ID, REKLAM)
+        log.info("✅ Sabah içeriği ve reklam gönderildi.")
     except Exception as e:
         log.error(f"❌ Sabah hatası: {e}")
 
@@ -172,9 +191,11 @@ async def ogle_gonder():
     """Her gün 12:00 — Ayet + Hadis + Dua"""
     log.info("Öğle içeriği gönderiliyor...")
     try:
-        icerik = ayet_hadis_dua_uret("Öğle")
+        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "Öğle")
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
-        log.info("✅ Öğle içeriği gönderildi.")
+        await asyncio.sleep(2)
+        await bot.send_message(TELEGRAM_CHANNEL_ID, REKLAM)
+        log.info("✅ Öğle içeriği ve reklam gönderildi.")
     except Exception as e:
         log.error(f"❌ Öğle hatası: {e}")
 
@@ -183,9 +204,11 @@ async def ikindi_gonder():
     """Her gün 15:00 — Ayet + Hadis + Dua"""
     log.info("İkindi içeriği gönderiliyor...")
     try:
-        icerik = ayet_hadis_dua_uret("İkindi")
+        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "İkindi")
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
-        log.info("✅ İkindi içeriği gönderildi.")
+        await asyncio.sleep(2)
+        await bot.send_message(TELEGRAM_CHANNEL_ID, REKLAM)
+        log.info("✅ İkindi içeriği ve reklam gönderildi.")
     except Exception as e:
         log.error(f"❌ İkindi hatası: {e}")
 
@@ -194,9 +217,11 @@ async def aksam_gonder():
     """Her gün 21:00 — Ayet + Hadis + Dua"""
     log.info("Akşam içeriği gönderiliyor...")
     try:
-        icerik = ayet_hadis_dua_uret("Akşam/Yatsı")
+        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "Akşam/Yatsı")
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
-        log.info("✅ Akşam içeriği gönderildi.")
+        await asyncio.sleep(2)
+        await bot.send_message(TELEGRAM_CHANNEL_ID, REKLAM)
+        log.info("✅ Akşam içeriği ve reklam gönderildi.")
     except Exception as e:
         log.error(f"❌ Akşam hatası: {e}")
 
@@ -206,16 +231,22 @@ async def persembe_gonder():
     log.info("Perşembe/Cuma içeriği gönderiliyor...")
     try:
         # 1. Sabah içeriği
-        sabah = sabah_icerigi_uret()
+        sabah = await asyncio.to_thread(sabah_icerigi_uret)
         await bot.send_message(TELEGRAM_CHANNEL_ID, sabah)
         log.info("✅ Sabah içeriği gönderildi.")
 
         await asyncio.sleep(3)
 
         # 2. Cuma vaazı
-        vaaz = cuma_vaazi_uret()
+        vaaz = await asyncio.to_thread(cuma_vaazi_uret)
         await bot.send_message(TELEGRAM_CHANNEL_ID, vaaz)
         log.info("✅ Cuma vaazı gönderildi.")
+
+        await asyncio.sleep(2)
+
+        # 3. Reklam
+        await bot.send_message(TELEGRAM_CHANNEL_ID, REKLAM)
+        log.info("✅ Reklam gönderildi.")
 
     except Exception as e:
         log.error(f"❌ Perşembe hatası: {e}")
@@ -270,19 +301,24 @@ async def komutlar(message: Message):
         )
     elif message.text == "/test_sabah":
         await message.answer("⏳ Üretiliyor...")
-        await message.answer(sabah_icerigi_uret())
+        icerik = await asyncio.to_thread(sabah_icerigi_uret)
+        await message.answer(icerik)
     elif message.text == "/test_ogle":
         await message.answer("⏳ Üretiliyor...")
-        await message.answer(ayet_hadis_dua_uret("Öğle"))
+        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "Öğle")
+        await message.answer(icerik)
     elif message.text == "/test_ikindi":
         await message.answer("⏳ Üretiliyor...")
-        await message.answer(ayet_hadis_dua_uret("İkindi"))
+        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "İkindi")
+        await message.answer(icerik)
     elif message.text == "/test_aksam":
         await message.answer("⏳ Üretiliyor...")
-        await message.answer(ayet_hadis_dua_uret("Akşam/Yatsı"))
+        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "Akşam/Yatsı")
+        await message.answer(icerik)
     elif message.text == "/test_cuma":
         await message.answer("⏳ Cuma vaazı üretiliyor...")
-        await message.answer(cuma_vaazi_uret())
+        vaaz = await asyncio.to_thread(cuma_vaazi_uret)
+        await message.answer(vaaz)
     elif message.text == "/test_gonder":
         await message.answer("📤 Kanala gönderiliyor...")
         await persembe_gonder()
