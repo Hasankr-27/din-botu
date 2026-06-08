@@ -284,14 +284,12 @@ async def komutlar(message: Message):
             "📅 Günlük program:\n"
             "• 08:00 — Olay + Ayet + Hadis + Dua + Vaaz\n"
             "• 12:00 — Öğle Ayeti + Hadis + Dua\n"
-            "• 15:00 — İkindi Ayeti + Hadis + Dua\n"
-            "• 21:00 — Akşam Ayeti + Hadis + Dua\n"
+            "• 16:00 — İkindi Ayeti + Hadis + Dua\n"
             "• Perşembe 20:00 — Sabah içeriği + Cuma Vaazı\n\n"
             "Test komutları:\n"
             "`/test_sabah` — sabah içeriği\n"
             "`/test_ogle` — öğle içeriği\n"
             "`/test_ikindi` — ikindi içeriği\n"
-            "`/test_aksam` — akşam içeriği\n"
             "`/test_cuma` — Cuma vaazı\n"
             "`/test_gonder` — Perşembe içeriğini kanala gönder"
         )
@@ -306,10 +304,6 @@ async def komutlar(message: Message):
     elif message.text == "/test_ikindi":
         await message.answer("⏳ Üretiliyor...")
         icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "İkindi")
-        await message.answer(icerik)
-    elif message.text == "/test_aksam":
-        await message.answer("⏳ Üretiliyor...")
-        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "Akşam/Yatsı")
         await message.answer(icerik)
     elif message.text == "/test_cuma":
         await message.answer("⏳ Cuma vaazı üretiliyor...")
