@@ -264,13 +264,9 @@ def zamanlayici_kur(scheduler: AsyncIOScheduler):
     scheduler.add_job(ogle_gonder, "cron",
         hour=12, minute=0, timezone=tz)
 
-    # 15:00 — İkindi (her gün)
+    # 16:00 — İkindi (her gün)
     scheduler.add_job(ikindi_gonder, "cron",
-        hour=15, minute=0, timezone=tz)
-
-    # 21:00 — Akşam/Yatsı (her gün)
-    scheduler.add_job(aksam_gonder, "cron",
-        hour=21, minute=0, timezone=tz)
+        hour=16, minute=0, timezone=tz)
 
     # Perşembe 20:00 — Sabah içeriği + Cuma vaazı
     scheduler.add_job(persembe_gonder, "cron",
