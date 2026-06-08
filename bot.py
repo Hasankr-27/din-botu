@@ -37,6 +37,7 @@ load_dotenv()
 TELEGRAM_BOT_TOKEN  = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 ANTHROPIC_API_KEY   = os.getenv("ANTHROPIC_API_KEY")
+ADMIN_ID            = int(os.getenv("ADMIN_ID", "0"))
 
 # Gerekli değişkenleri doğrula
 _eksik = [k for k, v in {
@@ -278,6 +279,8 @@ def zamanlayici_kur(scheduler: AsyncIOScheduler):
 
 @dp.message()
 async def komutlar(message: Message):
+    if ADMIN_ID and message.from_user.id != ADMIN_ID:
+        return
     if message.text == "/start":
         await message.answer(
             "🤖 *İslami İçerik Botu Aktif*\n\n"
