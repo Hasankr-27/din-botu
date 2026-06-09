@@ -89,21 +89,25 @@ def ayet_hadis_dua_uret(vakit: str) -> str:
     prompt = f"""
 Bugünün tarihi: {bugun}, Vakit: {vakit}
 
+Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
+
 Aşağıdaki formatta kısa Türkçe İslami içerik oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
 📖 *{vakit.upper()} AYETİ*
-[Vakitle uyumlu bir ayet — Türkçe meali + (Sure:Ayet)]
+[Vakitle uyumlu ayetin Arapça orijinali]
+[Türkçe meali — (Sure Adı, Ayet numarası)]
 
 📚 *HADİS*
-[Konuyla ilgili kısa bir hadis — Türkçe + (kaynak)]
+[Hadisin Arapça orijinali]
+[Türkçe çevirisi — (kaynak)]
 
 🤲 *DUA*
-[Vakitle ilgili kısa dua — Arapça + Türkçe anlamı]
+[Vakitle ilgili kısa dua — sadece Türkçe]
 
 Sadece içeriği yaz, başka açıklama ekleme.
 """
-    return claude_iste(prompt, max_tokens=800)
+    return claude_iste(prompt, max_tokens=1000)
 
 
 def sabah_icerigi_uret() -> str:
@@ -112,6 +116,8 @@ def sabah_icerigi_uret() -> str:
     prompt = f"""
 Bugünün tarihi: {bugun}
 
+Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
+
 Aşağıdaki formatta Türkçe İslami sabah içeriği oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
@@ -119,13 +125,15 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 [Bu tarihe yakın İslam tarihinden kısa, ilginç bir olay — 2-3 cümle]
 
 📖 *SABAH AYETİ*
-[Olayla bağlantılı bir ayet — Türkçe meali + (Sure:Ayet)]
+[Olayla bağlantılı ayetin Arapça orijinali]
+[Türkçe meali — (Sure Adı, Ayet numarası)]
 
 📚 *HADİS*
-[Konuyla ilgili bir hadis — Türkçe + (kaynak)]
+[Hadisin Arapça orijinali]
+[Türkçe çevirisi — (kaynak)]
 
 🤲 *SABAH DUASI*
-[Sabah duası — Arapça + Türkçe anlamı]
+[Sabah duası — sadece Türkçe]
 
 🕌 *GÜNÜN VAAZI*
 [150-200 kelime, sade ve samimi. Günün olayı veya ayetiyle bağlantılı.
