@@ -111,7 +111,7 @@ Sadece içeriği yaz, başka açıklama ekleme.
 
 
 def sabah_icerigi_uret() -> str:
-    """Sabah için olay + ayet + hadis + dua + vaaz üretir."""
+    """Sabah için ayet + hadis + dua + vaaz üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
     prompt = f"""
 Bugünün tarihi: {bugun}
@@ -121,11 +121,8 @@ Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
 Aşağıdaki formatta Türkçe İslami sabah içeriği oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
-📅 *GÜNÜN OLAYI*
-[Bu tarihe yakın İslam tarihinden kısa, ilginç bir olay — 2-3 cümle]
-
 📖 *SABAH AYETİ*
-[Olayla bağlantılı ayetin Arapça orijinali]
+[Güne uygun bir ayetin Arapça orijinali]
 [Türkçe meali — (Sure Adı, Ayet numarası)]
 
 📚 *HADİS*
@@ -136,12 +133,12 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 [Sabah duası — sadece Türkçe]
 
 🕌 *GÜNÜN VAAZI*
-[150-200 kelime, sade ve samimi. Günün olayı veya ayetiyle bağlantılı.
+[150-200 kelime, sade ve samimi. Ayetle bağlantılı.
 Günlük hayata dokunan, herkesin anlayabileceği bir dil.]
 
 Sadece içeriği yaz, başka açıklama ekleme.
 """
-    return claude_iste(prompt, max_tokens=2000)
+    return claude_iste(prompt, max_tokens=1800)
 
 
 def cuma_vaazi_uret() -> str:
