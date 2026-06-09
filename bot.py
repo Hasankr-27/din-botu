@@ -214,9 +214,7 @@ async def aksam_gonder():
     try:
         icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "Akşam/Yatsı")
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
-        await asyncio.sleep(2)
-        await bot.send_message(TELEGRAM_CHANNEL_ID, REKLAM)
-        log.info("✅ Akşam içeriği ve reklam gönderildi.")
+        log.info("✅ Akşam içeriği gönderildi.")
     except Exception as e:
         log.error(f"❌ Akşam hatası: {e}")
 
