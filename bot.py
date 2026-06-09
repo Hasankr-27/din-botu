@@ -181,9 +181,7 @@ async def sabah_gonder():
     try:
         icerik = await asyncio.to_thread(sabah_icerigi_uret)
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
-        await asyncio.sleep(2)
-        await bot.send_message(TELEGRAM_CHANNEL_ID, REKLAM)
-        log.info("✅ Sabah içeriği ve reklam gönderildi.")
+        log.info("✅ Sabah içeriği gönderildi.")
     except Exception as e:
         log.error(f"❌ Sabah hatası: {e}")
 
@@ -194,9 +192,7 @@ async def ogle_gonder():
     try:
         icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "Öğle")
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
-        await asyncio.sleep(2)
-        await bot.send_message(TELEGRAM_CHANNEL_ID, REKLAM)
-        log.info("✅ Öğle içeriği ve reklam gönderildi.")
+        log.info("✅ Öğle içeriği gönderildi.")
     except Exception as e:
         log.error(f"❌ Öğle hatası: {e}")
 
@@ -207,9 +203,7 @@ async def ikindi_gonder():
     try:
         icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "İkindi")
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
-        await asyncio.sleep(2)
-        await bot.send_message(TELEGRAM_CHANNEL_ID, REKLAM)
-        log.info("✅ İkindi içeriği ve reklam gönderildi.")
+        log.info("✅ İkindi içeriği gönderildi.")
     except Exception as e:
         log.error(f"❌ İkindi hatası: {e}")
 
@@ -242,12 +236,6 @@ async def persembe_gonder():
         vaaz = await asyncio.to_thread(cuma_vaazi_uret)
         await bot.send_message(TELEGRAM_CHANNEL_ID, vaaz)
         log.info("✅ Cuma vaazı gönderildi.")
-
-        await asyncio.sleep(2)
-
-        # 3. Reklam
-        await bot.send_message(TELEGRAM_CHANNEL_ID, REKLAM)
-        log.info("✅ Reklam gönderildi.")
 
     except Exception as e:
         log.error(f"❌ Perşembe hatası: {e}")
