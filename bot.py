@@ -164,8 +164,16 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 [Sabah duası — sadece Türkçe]
 
 🕌 *GÜNÜN VAAZI*
-[150-200 kelime, sade ve samimi. "{tema}" temasını işle.
-Günlük hayata dokunan, herkesin anlayabileceği bir dil.]
+["{tema}" temasında 150-200 kelimelik bir vaaz yaz. Şu tarzda olsun:
+- Bir din hocasının cemaate sohbet anlatır gibi samimi ve akıcı
+- Önce konuyu günlük hayattan somut bir örnekle aç
+- Sonra ayet veya hadisle destekle
+- Tarihi bir olay ya da peygamber kıssasıyla pekiştir
+- Günümüzde nasıl uygulanır bağlantısını kur
+- Kapanışta kısa bir dua veya öğütle bitir
+- Dil sade Türkçe, ağır Osmanlıca kelime kullanma
+- Kısa ve anlaşılır cümleler kur
+- Okuyucuya "siz", "bizler", "kardeşlerim" diye hitap et]
 
 Sadece içeriği yaz, başka açıklama ekleme.
 """
@@ -178,32 +186,40 @@ def cuma_vaazi_uret() -> str:
     prompt = f"""
 Bugünün tarihi: {bugun} (Perşembe — yarın Cuma)
 
-Türkçe, 500-600 kelimelik derin ve etkileyici bir Cuma vaazı yaz.
+Türkçe, 500-600 kelimelik bir Cuma vaazı yaz.
 Markdown kullan (Telegram uyumlu).
 
+Vaaz tarzı şöyle olsun:
+- Bir din hocasının cemaate sohbet anlatır gibi samimi ve akıcı
+- Önce konuyu günlük hayattan somut bir örnekle aç
+- Sonra ayet ve hadisle destekle (Arapça orijinal + Türkçe meal/çeviri + kaynak)
+- Tarihi bir olay ya da peygamber kıssasıyla pekiştir
+- Günümüzde nasıl uygulanır bağlantısını kur
+- Kapanışta dua ve öğütle bitir
+- Dil sade Türkçe, ağır Osmanlıca kelime kullanma
+- Kısa ve anlaşılır cümleler kur
+- Okuyucuya "siz", "bizler", "kardeşlerim" diye hitap et
+
 🕌 *CUMA VAAZI*
-*[Vaazın başlığı — dikkat çekici, düşündürücü]*
+*[Vaazın başlığı — kısa ve dikkat çekici]*
 
-_"[Konuyla ilgili güçlü bir ayet meali]"_
-_(Sure adı, Ayet numarası)_
+[Önce günlük hayattan bir örnekle başla]
 
-*📖 Ayetin Tefsiri:*
-[Derinlemesine açıklama — 3-4 cümle, alimlerden görüşler]
+[Ayet: Arapça orijinal, ardından Türkçe meali — (Sure Adı, Ayet numarası)]
 
-*📚 Peygamberimizden:*
-[2 hadis — kaynaklarıyla, konuyla doğrudan ilgili]
+[Hadis: Arapça orijinal, ardından Türkçe çevirisi — (kaynak)]
 
-*💭 Bugüne Yansıması:*
-[Modern hayattan somut örnekler — 3 paragraf, samimi dil]
+[Tarihi olay veya peygamber kıssası]
+
+[Günümüze bağlantı — nasıl uygularız]
 
 *🌟 Bu Haftanın Ameli:*
-[Bu hafta yapılabilecek küçük ama anlamlı bir ibadet/davranış önerisi]
+[Bu hafta yapılabilecek küçük ama anlamlı bir öneri]
 
 *🤲 Cuma Duası:*
-[Arapça dua + Türkçe anlamı]
+[Sadece Türkçe dua]
 
-Tema: sabır, şükür, ihlas, tevbe, adalet, merhamet, birlik, tevekkül vb.
-Hutbe tadında ama sohbet sıcaklığında olsun.
+Tema bu haftanın ruhuna uygun seç: sabır, şükür, tevbe, merhamet, kul hakkı, ihlas vb.
 Sadece vaazı yaz, başka açıklama ekleme.
 """
     return claude_iste(prompt, max_tokens=2500)
