@@ -81,13 +81,43 @@ def claude_iste(prompt: str, max_tokens: int = 2000) -> str:
     )
     return mesaj.content[0].text
 
+# ─── Günlük Tema ──────────────────────────────────────────────────────────────
+
+TEMALAR = [
+    "sabır ve tahammül",
+    "şükür ve minnettarlık",
+    "tevbe ve af dilemek",
+    "merhamet ve şefkat",
+    "musibetler ve imtihan",
+    "kul hakkı ve adalet",
+    "ihlas ve samimiyet",
+    "günah ve sevap",
+    "tevekkül ve Allah'a güven",
+    "ölüm ve ahiret",
+    "aile ve anne-baba hakkı",
+    "sadaka ve yardımlaşma",
+    "kibir ve tevazu",
+    "haset ve kıskançlık",
+    "dua ve niyaz",
+    "ilim ve hikmet",
+    "zikir ve Allah'ı anmak",
+    "dürüstlük ve emanet",
+    "birlik ve kardeşlik",
+    "nefis terbiyesi",
+]
+
+def gunun_temasi() -> str:
+    gun = datetime.now().timetuple().tm_yday
+    return TEMALAR[gun % len(TEMALAR)]
+
 # ─── İçerik Üretici Fonksiyonlar ───────────────────────────────────────────────
 
 def ayet_hadis_dua_uret(vakit: str) -> str:
-    """Öğle, İkindi, Akşam/Yatsı için kısa içerik üretir."""
+    """Öğle, İkindi için kısa içerik üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
+    tema = gunun_temasi()
     prompt = f"""
-Bugünün tarihi: {bugun}, Vakit: {vakit}
+Bugünün tarihi: {bugun}, Vakit: {vakit}, Günün teması: {tema}
 
 Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
 
@@ -95,11 +125,11 @@ Aşağıdaki formatta kısa Türkçe İslami içerik oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
 📖 *{vakit.upper()} AYETİ*
-[Vakitle uyumlu ayetin Arapça orijinali]
+["{tema}" temasıyla ilgili bir ayetin Arapça orijinali]
 [Türkçe meali — (Sure Adı, Ayet numarası)]
 
 📚 *HADİS*
-[Hadisin Arapça orijinali]
+[Konuyla ilgili hadisin Arapça orijinali]
 [Türkçe çevirisi — (kaynak)]
 
 🤲 *DUA*
@@ -113,8 +143,9 @@ Sadece içeriği yaz, başka açıklama ekleme.
 def sabah_icerigi_uret() -> str:
     """Sabah için ayet + hadis + dua + vaaz üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
+    tema = gunun_temasi()
     prompt = f"""
-Bugünün tarihi: {bugun}
+Bugünün tarihi: {bugun}, Günün teması: {tema}
 
 Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
 
@@ -122,18 +153,18 @@ Aşağıdaki formatta Türkçe İslami sabah içeriği oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
 📖 *SABAH AYETİ*
-[Güne uygun bir ayetin Arapça orijinali]
+["{tema}" temasıyla ilgili bir ayetin Arapça orijinali]
 [Türkçe meali — (Sure Adı, Ayet numarası)]
 
 📚 *HADİS*
-[Hadisin Arapça orijinali]
+[Konuyla ilgili hadisin Arapça orijinali]
 [Türkçe çevirisi — (kaynak)]
 
 🤲 *SABAH DUASI*
 [Sabah duası — sadece Türkçe]
 
 🕌 *GÜNÜN VAAZI*
-[150-200 kelime, sade ve samimi. Ayetle bağlantılı.
+[150-200 kelime, sade ve samimi. "{tema}" temasını işle.
 Günlük hayata dokunan, herkesin anlayabileceği bir dil.]
 
 Sadece içeriği yaz, başka açıklama ekleme.
