@@ -82,13 +82,45 @@ def claude_iste(prompt: str, max_tokens: int = 2000) -> str:
     )
     return mesaj.content[0].text
 
+# ─── Günlük Tema ──────────────────────────────────────────────────────────────
+
+TEMALAR = [
+    "sabır ve tahammül",
+    "şükür ve minnettarlık",
+    "tevbe ve af dilemek",
+    "merhamet ve şefkat",
+    "musibetler ve imtihan",
+    "kul hakkı ve adalet",
+    "ihlas ve samimiyet",
+    "günah ve sevap",
+    "tevekkül ve Allah'a güven",
+    "ölüm ve ahiret",
+    "aile ve anne-baba hakkı",
+    "sadaka ve yardımlaşma",
+    "kibir ve tevazu",
+    "haset ve kıskançlık",
+    "dua ve niyaz",
+    "ilim ve hikmet",
+    "zikir ve Allah'ı anmak",
+    "dürüstlük ve emanet",
+    "birlik ve kardeşlik",
+    "nefis terbiyesi",
+]
+
+def gunun_temasi() -> str:
+    gun = datetime.now().timetuple().tm_yday
+    return TEMALAR[gun % len(TEMALAR)]
+
 # ─── İçerik Üretici Fonksiyonlar ───────────────────────────────────────────────
 
 def ayet_hadis_dua_uret(vakit: str) -> str:
-    """Öğle, İkindi, Akşam/Yatsı için kısa içerik üretir."""
+    """Öğle, İkindi için kısa içerik üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
+    tema = gunun_temasi()
     prompt = f"""
-Bugünün tarihi: {bugun}, Vakit: {vakit}
+Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
+
+Bugünün tarihi: {bugun}, Vakit: {vakit}, Günün teması: {tema}
 
 Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
 
@@ -96,15 +128,17 @@ Aşağıdaki formatta kısa Türkçe İslami içerik oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
 📖 *{vakit.upper()} AYETİ*
-[Vakitle uyumlu ayetin Arapça orijinali]
+["{tema}" temasıyla ilgili bir ayetin Arapça orijinali]
 [Türkçe meali — (Sure Adı, Ayet numarası)]
 
 📚 *HADİS*
-[Hadisin Arapça orijinali]
+[Konuyla ilgili hadisin Arapça orijinali]
 [Türkçe çevirisi — (kaynak)]
 
 🤲 *DUA*
 [Vakitle ilgili kısa dua — sadece Türkçe]
+
+ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
 
 Sadece içeriği yaz, başka açıklama ekleme.
 """
@@ -114,8 +148,11 @@ Sadece içeriği yaz, başka açıklama ekleme.
 def sabah_icerigi_uret() -> str:
     """Sabah için ayet + hadis + dua + vaaz üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
+    tema = gunun_temasi()
     prompt = f"""
-Bugünün tarihi: {bugun}
+Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
+
+Bugünün tarihi: {bugun}, Günün teması: {tema}
 
 Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
 
@@ -123,19 +160,29 @@ Aşağıdaki formatta Türkçe İslami sabah içeriği oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
 📖 *SABAH AYETİ*
-[Güne uygun bir ayetin Arapça orijinali]
+["{tema}" temasıyla ilgili bir ayetin Arapça orijinali]
 [Türkçe meali — (Sure Adı, Ayet numarası)]
 
 📚 *HADİS*
-[Hadisin Arapça orijinali]
+[Konuyla ilgili hadisin Arapça orijinali]
 [Türkçe çevirisi — (kaynak)]
 
 🤲 *SABAH DUASI*
 [Sabah duası — sadece Türkçe]
 
 🕌 *GÜNÜN VAAZI*
-[150-200 kelime, sade ve samimi. Ayetle bağlantılı.
-Günlük hayata dokunan, herkesin anlayabileceği bir dil.]
+["{tema}" temasında 150-200 kelimelik bir vaaz yaz. Şu tarzda olsun:
+- Bir din hocasının cemaate sohbet anlatır gibi samimi ve akıcı
+- Önce konuyu günlük hayattan somut bir örnekle aç
+- Sonra ayet veya hadisle destekle
+- Tarihi bir olay ya da peygamber kıssasıyla pekiştir
+- Günümüzde nasıl uygulanır bağlantısını kur
+- Kapanışta kısa bir dua veya öğütle bitir
+- Dil sade Türkçe, ağır Osmanlıca kelime kullanma
+- Kısa ve anlaşılır cümleler kur
+- Okuyucuya "siz", "bizler", "kardeşlerim" diye hitap et]
+
+ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
 
 Sadece içeriği yaz, başka açıklama ekleme.
 """
@@ -146,34 +193,47 @@ def cuma_vaazi_uret() -> str:
     """Perşembe akşamı için derin Cuma vaazı üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
     prompt = f"""
+Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
+
 Bugünün tarihi: {bugun} (Perşembe — yarın Cuma)
 
-Türkçe, 500-600 kelimelik derin ve etkileyici bir Cuma vaazı yaz.
+Türkçe, 500-600 kelimelik bir Cuma vaazı yaz.
 Markdown kullan (Telegram uyumlu).
 
+Vaaz tarzı şöyle olsun:
+- Bir din hocasının cemaate sohbet anlatır gibi samimi ve akıcı
+- Önce konuyu günlük hayattan somut bir örnekle aç
+- Sonra ayet ve hadisle destekle (Arapça orijinal + Türkçe meal/çeviri + kaynak)
+- Tarihi bir olay ya da peygamber kıssasıyla pekiştir
+- Günümüzde nasıl uygulanır bağlantısını kur
+- Kapanışta dua ve öğütle bitir
+- Dil sade Türkçe, ağır Osmanlıca kelime kullanma
+- Kısa ve anlaşılır cümleler kur
+- Okuyucuya "siz", "bizler", "kardeşlerim" diye hitap et
+
 🕌 *CUMA VAAZI*
-*[Vaazın başlığı — dikkat çekici, düşündürücü]*
+*[Vaazın başlığı — kısa ve dikkat çekici]*
 
-_"[Konuyla ilgili güçlü bir ayet meali]"_
-_(Sure adı, Ayet numarası)_
+[Önce günlük hayattan bir örnekle başla]
 
-*📖 Ayetin Tefsiri:*
-[Derinlemesine açıklama — 3-4 cümle, alimlerden görüşler]
+[Ayet: Arapça orijinal, ardından Türkçe meali — (Sure Adı, Ayet numarası)]
 
-*📚 Peygamberimizden:*
-[2 hadis — kaynaklarıyla, konuyla doğrudan ilgili]
+[Hadis: Arapça orijinal, ardından Türkçe çevirisi — (kaynak)]
 
-*💭 Bugüne Yansıması:*
-[Modern hayattan somut örnekler — 3 paragraf, samimi dil]
+[Tarihi olay veya peygamber kıssası]
+
+[Günümüze bağlantı — nasıl uygularız]
 
 *🌟 Bu Haftanın Ameli:*
-[Bu hafta yapılabilecek küçük ama anlamlı bir ibadet/davranış önerisi]
+[Bu hafta yapılabilecek küçük ama anlamlı bir öneri]
 
 *🤲 Cuma Duası:*
-[Arapça dua + Türkçe anlamı]
+[Sadece Türkçe dua]
 
-Tema: sabır, şükür, ihlas, tevbe, adalet, merhamet, birlik, tevekkül vb.
-Hutbe tadında ama sohbet sıcaklığında olsun.
+Tema bu haftanın ruhuna uygun seç: sabır, şükür, tevbe, merhamet, kul hakkı, ihlas vb.
+
+ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
+
 Sadece vaazı yaz, başka açıklama ekleme.
 """
     return claude_iste(prompt, max_tokens=2500)
