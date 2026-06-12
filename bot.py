@@ -127,7 +127,7 @@ Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
 Aşağıdaki formatta kısa Türkçe İslami içerik oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
-📖 *{vakit.upper()} AYETİ*
+📖 *AYET*
 ["{tema}" temasıyla ilgili bir ayetin Arapça orijinali]
 [Türkçe meali — (Sure Adı, Ayet numarası)]
 
@@ -135,7 +135,7 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 [Konuyla ilgili hadisin Arapça orijinali]
 [Türkçe çevirisi — (kaynak)]
 
-🤲 *DUA*
+🤲 *{vakit.upper()} DUASI*
 [Vakitle ilgili kısa dua — sadece Türkçe]
 
 ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
@@ -159,7 +159,7 @@ Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
 Aşağıdaki formatta Türkçe İslami sabah içeriği oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
-📖 *SABAH AYETİ*
+📖 *AYET*
 ["{tema}" temasıyla ilgili bir ayetin Arapça orijinali]
 [Türkçe meali — (Sure Adı, Ayet numarası)]
 
