@@ -17,9 +17,11 @@ Kurulum:
 """
 
 import asyncio
+import json
 import logging
+import re
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 
@@ -82,6 +84,56 @@ def claude_iste(prompt: str, max_tokens: int = 2000) -> str:
     )
     return mesaj.content[0].text
 
+# ─── Kullanılan İçerik Takibi ─────────────────────────────────────────────────
+
+USED_CONTENT_FILE = "used_content.json"
+
+def used_content_yukle() -> list:
+    if not os.path.exists(USED_CONTENT_FILE):
+        return []
+    try:
+        with open(USED_CONTENT_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        sinir = (datetime.now() - timedelta(days=30)).isoformat()
+        return [item for item in data if item.get("tarih", "") > sinir]
+    except Exception:
+        return []
+
+def used_content_kaydet(ayet_ref: str, hadis_ref: str):
+    data = used_content_yukle()
+    data.append({
+        "tarih": datetime.now().isoformat(),
+        "ayet": ayet_ref,
+        "hadis": hadis_ref,
+    })
+    try:
+        with open(USED_CONTENT_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        log.error(f"used_content.json yazma hatası: {e}")
+
+def used_list_al() -> str:
+    data = used_content_yukle()
+    if not data:
+        return "Henüz kayıtlı kullanım yok."
+    return "\n".join(
+        f"- Ayet: {item.get('ayet', '?')} | Hadis: {item.get('hadis', '?')}"
+        for item in data
+    )
+
+def referans_cikart_ve_kaydet(icerik: str) -> str:
+    """İçerikten REFERANSLAR bloğunu parse eder, kaydeder ve temiz metni döndürür."""
+    ayet_ref = "bilinmiyor"
+    hadis_ref = "bilinmiyor"
+    ayet_match = re.search(r"AYET:\s*(.+)", icerik)
+    hadis_match = re.search(r"HADİS_REF:\s*(.+)", icerik)
+    if ayet_match:
+        ayet_ref = ayet_match.group(1).strip()
+    if hadis_match:
+        hadis_ref = hadis_match.group(1).strip()
+    used_content_kaydet(ayet_ref, hadis_ref)
+    return re.sub(r"\n*---REFERANSLAR---.*", "", icerik, flags=re.DOTALL).strip()
+
 # ─── Günlük Tema ──────────────────────────────────────────────────────────────
 
 TEMALAR = [
@@ -117,8 +169,13 @@ def ayet_hadis_dua_uret(vakit: str) -> str:
     """Öğle, İkindi için kısa içerik üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
     tema = gunun_temasi()
+    used_list = used_list_al()
     prompt = f"""
 Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
+
+Daha önce kullanılan ayetler ve hadisler:
+{used_list}
+Bu listedekilerden HİÇBİRİNİ kullanma, tamamen farklı seç.
 
 Bugünün tarihi: {bugun}, Vakit: {vakit}, Günün teması: {tema}
 
@@ -140,17 +197,25 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
 ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
 
-Sadece içeriği yaz, başka açıklama ekleme.
+Sadece içeriği yaz, başka açıklama ekleme. Ardından şu bloğu ekle (kullanıcıya gösterilmeyecek):
+---REFERANSLAR---
+AYET: [kullandığın ayetin sure adı ve ayet numarası, örn: Bakara, 286]
+HADİS_REF: [kullandığın hadisin kaynağı, örn: Buhari, İman 1]
 """
-    return claude_iste(prompt, max_tokens=1000)
+    return claude_iste(prompt, max_tokens=1100)
 
 
 def sabah_icerigi_uret() -> str:
     """Sabah için ayet + hadis + dua + vaaz üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
     tema = gunun_temasi()
+    used_list = used_list_al()
     prompt = f"""
 Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
+
+Daha önce kullanılan ayetler ve hadisler:
+{used_list}
+Bu listedekilerden HİÇBİRİNİ kullanma, tamamen farklı seç.
 
 Bugünün tarihi: {bugun}, Günün teması: {tema}
 
@@ -184,16 +249,24 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 
 ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
 
-Sadece içeriği yaz, başka açıklama ekleme.
+Sadece içeriği yaz, başka açıklama ekleme. Ardından şu bloğu ekle (kullanıcıya gösterilmeyecek):
+---REFERANSLAR---
+AYET: [kullandığın ayetin sure adı ve ayet numarası, örn: Bakara, 286]
+HADİS_REF: [kullandığın hadisin kaynağı, örn: Buhari, İman 1]
 """
-    return claude_iste(prompt, max_tokens=1800)
+    return claude_iste(prompt, max_tokens=1900)
 
 
 def cuma_vaazi_uret() -> str:
     """Perşembe akşamı için derin Cuma vaazı üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
+    used_list = used_list_al()
     prompt = f"""
 Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
+
+Daha önce kullanılan ayetler ve hadisler:
+{used_list}
+Bu listedekilerden HİÇBİRİNİ kullanma, tamamen farklı seç.
 
 Bugünün tarihi: {bugun} (Perşembe — yarın Cuma)
 
@@ -234,17 +307,21 @@ Tema bu haftanın ruhuna uygun seç: sabır, şükür, tevbe, merhamet, kul hakk
 
 ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
 
-Sadece vaazı yaz, başka açıklama ekleme.
+Sadece vaazı yaz, başka açıklama ekleme. Ardından şu bloğu ekle (kullanıcıya gösterilmeyecek):
+---REFERANSLAR---
+AYET: [kullandığın ana ayetin sure adı ve ayet numarası]
+HADİS_REF: [kullandığın ana hadisin kaynağı]
 """
-    return claude_iste(prompt, max_tokens=2500)
+    return claude_iste(prompt, max_tokens=2600)
 
 # ─── Gönderim Fonksiyonları ────────────────────────────────────────────────────
 
 async def sabah_gonder():
-    """Her gün 08:00 — Olay + Ayet + Hadis + Dua + Vaaz"""
+    """Her gün 08:00 — Ayet + Hadis + Dua + Vaaz"""
     log.info("Sabah içeriği gönderiliyor...")
     try:
-        icerik = await asyncio.to_thread(sabah_icerigi_uret)
+        ham = await asyncio.to_thread(sabah_icerigi_uret)
+        icerik = await asyncio.to_thread(referans_cikart_ve_kaydet, ham)
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
         log.info("✅ Sabah içeriği gönderildi.")
     except Exception as e:
@@ -255,7 +332,8 @@ async def ogle_gonder():
     """Her gün 12:00 — Ayet + Hadis + Dua"""
     log.info("Öğle içeriği gönderiliyor...")
     try:
-        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "Öğle")
+        ham = await asyncio.to_thread(ayet_hadis_dua_uret, "Öğle")
+        icerik = await asyncio.to_thread(referans_cikart_ve_kaydet, ham)
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
         log.info("✅ Öğle içeriği gönderildi.")
     except Exception as e:
@@ -263,10 +341,11 @@ async def ogle_gonder():
 
 
 async def ikindi_gonder():
-    """Her gün 15:00 — Ayet + Hadis + Dua"""
+    """Her gün 16:00 — Ayet + Hadis + Dua"""
     log.info("İkindi içeriği gönderiliyor...")
     try:
-        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "İkindi")
+        ham = await asyncio.to_thread(ayet_hadis_dua_uret, "İkindi")
+        icerik = await asyncio.to_thread(referans_cikart_ve_kaydet, ham)
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
         log.info("✅ İkindi içeriği gönderildi.")
     except Exception as e:
@@ -289,14 +368,16 @@ async def persembe_gonder():
     log.info("Perşembe/Cuma içeriği gönderiliyor...")
     try:
         # 1. Sabah içeriği
-        sabah = await asyncio.to_thread(sabah_icerigi_uret)
+        ham_sabah = await asyncio.to_thread(sabah_icerigi_uret)
+        sabah = await asyncio.to_thread(referans_cikart_ve_kaydet, ham_sabah)
         await bot.send_message(TELEGRAM_CHANNEL_ID, sabah)
         log.info("✅ Sabah içeriği gönderildi.")
 
         await asyncio.sleep(3)
 
         # 2. Cuma vaazı
-        vaaz = await asyncio.to_thread(cuma_vaazi_uret)
+        ham_vaaz = await asyncio.to_thread(cuma_vaazi_uret)
+        vaaz = await asyncio.to_thread(referans_cikart_ve_kaydet, ham_vaaz)
         await bot.send_message(TELEGRAM_CHANNEL_ID, vaaz)
         log.info("✅ Cuma vaazı gönderildi.")
 
