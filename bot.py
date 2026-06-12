@@ -117,6 +117,8 @@ def ayet_hadis_dua_uret(vakit: str) -> str:
     bugun = datetime.now().strftime("%d %B %Y")
     tema = gunun_temasi()
     prompt = f"""
+Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
+
 Bugünün tarihi: {bugun}, Vakit: {vakit}, Günün teması: {tema}
 
 Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
@@ -135,6 +137,8 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 🤲 *DUA*
 [Vakitle ilgili kısa dua — sadece Türkçe]
 
+ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
+
 Sadece içeriği yaz, başka açıklama ekleme.
 """
     return claude_iste(prompt, max_tokens=1000)
@@ -145,6 +149,8 @@ def sabah_icerigi_uret() -> str:
     bugun = datetime.now().strftime("%d %B %Y")
     tema = gunun_temasi()
     prompt = f"""
+Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
+
 Bugünün tarihi: {bugun}, Günün teması: {tema}
 
 Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
@@ -175,6 +181,8 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 - Kısa ve anlaşılır cümleler kur
 - Okuyucuya "siz", "bizler", "kardeşlerim" diye hitap et]
 
+ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
+
 Sadece içeriği yaz, başka açıklama ekleme.
 """
     return claude_iste(prompt, max_tokens=1800)
@@ -184,6 +192,8 @@ def cuma_vaazi_uret() -> str:
     """Perşembe akşamı için derin Cuma vaazı üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
     prompt = f"""
+Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
+
 Bugünün tarihi: {bugun} (Perşembe — yarın Cuma)
 
 Türkçe, 500-600 kelimelik bir Cuma vaazı yaz.
@@ -220,6 +230,9 @@ Vaaz tarzı şöyle olsun:
 [Sadece Türkçe dua]
 
 Tema bu haftanın ruhuna uygun seç: sabır, şükür, tevbe, merhamet, kul hakkı, ihlas vb.
+
+ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
+
 Sadece vaazı yaz, başka açıklama ekleme.
 """
     return claude_iste(prompt, max_tokens=2500)
