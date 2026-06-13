@@ -16,10 +16,8 @@ Kurulum:
 """
 
 import asyncio
-import json
 import logging
-import pathlib
-import re
+import random
 import sys
 from datetime import datetime
 from dotenv import load_dotenv
@@ -74,127 +72,51 @@ bot       = Bot(
 dp        = Dispatcher()
 ai_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
-# ─── Kullanılan İçerik Takibi ─────────────────────────────────────────────────
-
-_data_dir = pathlib.Path("/app/data")
-try:
-    _data_dir.mkdir(parents=True, exist_ok=True)
-    USED_CONTENT_FILE = _data_dir / "used_content.json"
-except OSError:
-    USED_CONTENT_FILE = pathlib.Path("used_content.json")
-
-MAX_USED = 50
-
-def _used_yukle() -> dict:
-    try:
-        with open(USED_CONTENT_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if isinstance(data, dict) and "ayetler" in data:
-            return data
-    except Exception:
-        pass
-    return {"ayetler": [], "hadisler": []}
-
-def _used_kaydet(ayet: str | None, hadis: str | None):
-    data = _used_yukle()
-    if ayet:
-        data["ayetler"].append(ayet)
-        if len(data["ayetler"]) > MAX_USED:
-            data["ayetler"] = data["ayetler"][-MAX_USED:]
-    if hadis:
-        data["hadisler"].append(hadis)
-        if len(data["hadisler"]) > MAX_USED:
-            data["hadisler"] = data["hadisler"][-MAX_USED:]
-    try:
-        with open(USED_CONTENT_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        log.error(f"used_content.json yazma hatası: {e}")
-
 # ─── Claude API ────────────────────────────────────────────────────────────────
 
 def claude_iste(prompt: str, max_tokens: int = 2000) -> str:
-    used = _used_yukle()
-
-    # Kullanılmış listeyi prompt'un başına ekle
-    parts = []
-    if used["ayetler"]:
-        parts.append("Ayetler: " + ", ".join(used["ayetler"]))
-    if used["hadisler"]:
-        parts.append("Hadisler: " + ", ".join(used["hadisler"]))
-    if parts:
-        used_str = "\n".join(parts)
-        prompt = (
-            f"KESİNLİKLE şu ayet ve hadisleri KULLANMA:\n{used_str}\n"
-            f"Tamamen farklı ayet ve hadis seç.\n\n"
-        ) + prompt
-
-    # İçerikten sonra referans satırları iste
-    prompt += (
-        "\n\nİçeriği verdikten sonra en sona şu iki satırı ekle "
-        "(başka hiçbir şey ekleme):\n"
-        "KULLANILAN_AYET: [sure:ayet_no, örn: Bakara:255]\n"
-        "KULLANILAN_HADİS: [kaynak, örn: Buhari:İman1]"
-    )
-
+    prompt += "\n\nBakara 155. ayet ile Buhari Merda 1 hadisini KULLANMA."
     mesaj = ai_client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}]
     )
-    raw = mesaj.content[0].text
+    return mesaj.content[0].text
 
-    # Referansları çıkar ve kaydet
-    ayet_m = re.search(r"KULLANILAN_AYET:\s*(.+)", raw)
-    hadis_m = re.search(r"KULLANILAN_HADİS:\s*(.+)", raw)
-    _used_kaydet(
-        ayet_m.group(1).strip() if ayet_m else None,
-        hadis_m.group(1).strip() if hadis_m else None,
-    )
+# ─── Tema Listeleri ────────────────────────────────────────────────────────────
 
-    # Referans satırlarını temizleyip döndür
-    clean = re.sub(r"\n*KULLANILAN_AYET:.*", "", raw, flags=re.DOTALL).strip()
-    return clean
-
-# ─── Günlük Tema ──────────────────────────────────────────────────────────────
-
-TEMALAR = [
-    "sabır ve tahammül",
-    "şükür ve minnettarlık",
-    "tevbe ve af dilemek",
-    "merhamet ve şefkat",
-    "musibetler ve imtihan",
-    "kul hakkı ve adalet",
-    "ihlas ve samimiyet",
-    "günah ve sevap",
-    "tevekkül ve Allah'a güven",
-    "ölüm ve ahiret",
-    "aile ve anne-baba hakkı",
-    "sadaka ve yardımlaşma",
-    "kibir ve tevazu",
-    "haset ve kıskançlık",
-    "dua ve niyaz",
-    "ilim ve hikmet",
-    "zikir ve Allah'ı anmak",
-    "dürüstlük ve emanet",
-    "birlik ve kardeşlik",
-    "nefis terbiyesi",
+SABAH_TEMALAR = [
+    "tevbe ve af", "şükür", "sabır", "tevekkül", "ihlas",
+    "merhamet", "adalet", "dürüstlük", "cömertlik", "tövbe",
+    "namaz", "oruç", "zikir", "dua", "aile", "komşuluk",
+    "ilim", "çalışmak", "yardımlaşma", "anne-baba hakkı"
 ]
 
-def gunun_temasi() -> str:
-    gun = datetime.now().timetuple().tm_yday
-    return TEMALAR[gun % len(TEMALAR)]
+OGLE_TEMALAR = [
+    "şükür", "sabır", "tevbe ve af", "ihlas", "tevekkül",
+    "adalet", "merhamet", "cömertlik", "dürüstlük", "tövbe",
+    "oruç", "namaz", "dua", "zikir", "komşuluk", "aile",
+    "anne-baba hakkı", "yardımlaşma", "ilim", "çalışmak"
+]
+
+IKINDI_TEMALAR = [
+    "ihlas", "tevekkül", "tevbe ve af", "sabır", "şükür",
+    "cömertlik", "dürüstlük", "adalet", "merhamet", "tövbe",
+    "zikir", "dua", "namaz", "oruç", "yardımlaşma", "ilim",
+    "çalışmak", "komşuluk", "anne-baba hakkı", "aile"
+]
 
 # ─── İçerik Üretici Fonksiyonlar ───────────────────────────────────────────────
 
-def ayet_hadis_dua_uret(vakit: str) -> str:
+def ayet_hadis_dua_uret(vakit: str, tema: str = None) -> str:
     """Öğle, İkindi için kısa içerik üretir."""
+    if tema is None:
+        tema = random.choice(SABAH_TEMALAR)
     bugun = datetime.now().strftime("%d %B %Y")
-    tema = gunun_temasi()
     prompt = f"""
-Bugünün tarihi: {bugun}, Vakit: {vakit}, Günün teması: {tema}
+Bugünün tarihi: {bugun}, Vakit: {vakit}
 
-Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
+Bu günün teması: {tema}. SADECE bu konuyla ilgili ayet ve hadis seç.
 
 Aşağıdaki formatta kısa Türkçe İslami içerik oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
@@ -210,21 +132,20 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 🤲 *{vakit.upper()} DUASI*
 [Vakitle ilgili kısa dua — sadece Türkçe]
 
-ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, rastgele ama anlamlı bir ayet ve hadis seç.
-
 Sadece içeriği yaz, başka açıklama ekleme.
 """
     return claude_iste(prompt, max_tokens=1100)
 
 
-def sabah_icerigi_uret() -> str:
+def sabah_icerigi_uret(tema: str = None) -> str:
     """Sabah için ayet + hadis + dua + vaaz üretir."""
+    if tema is None:
+        tema = random.choice(SABAH_TEMALAR)
     bugun = datetime.now().strftime("%d %B %Y")
-    tema = gunun_temasi()
     prompt = f"""
-Bugünün tarihi: {bugun}, Günün teması: {tema}
+Bugünün tarihi: {bugun}
 
-Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
+Bu günün teması: {tema}. SADECE bu konuyla ilgili ayet ve hadis seç.
 
 Aşağıdaki formatta Türkçe İslami sabah içeriği oluştur.
 Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
@@ -251,8 +172,6 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 - Dil sade Türkçe, ağır Osmanlıca kelime kullanma
 - Kısa ve anlaşılır cümleler kur
 - Okuyucuya "siz", "bizler", "kardeşlerim" diye hitap et]
-
-ÖNEMLİ: Bugünün tarihi {bugun}. Rastgele ama anlamlı bir ayet ve hadis seç.
 
 Sadece içeriği yaz, başka açıklama ekleme.
 """
@@ -298,7 +217,7 @@ Vaaz tarzı şöyle olsun:
 *🤲 Cuma Duası:*
 [Sadece Türkçe dua]
 
-Tema bu haftanın ruhuna uygun seç: sabır, şükür, tevbe, merhamet, kul hakkı, ihlas vb.
+Tema bu haftanın ruhuna uygun seç: tevbe, merhamet, kul hakkı, ihlas, tevekkül vb.
 
 Sadece vaazı yaz, başka açıklama ekleme.
 """
@@ -310,9 +229,10 @@ async def sabah_gonder():
     """Her gün 08:00 — Ayet + Hadis + Dua + Vaaz"""
     log.info("Sabah içeriği gönderiliyor...")
     try:
-        icerik = await asyncio.to_thread(sabah_icerigi_uret)
+        tema = random.choice(SABAH_TEMALAR)
+        icerik = await asyncio.to_thread(sabah_icerigi_uret, tema)
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
-        log.info("✅ Sabah içeriği gönderildi.")
+        log.info(f"✅ Sabah içeriği gönderildi. (tema: {tema})")
     except Exception as e:
         log.error(f"❌ Sabah hatası: {e}")
 
@@ -321,9 +241,10 @@ async def ogle_gonder():
     """Her gün 12:00 — Ayet + Hadis + Dua"""
     log.info("Öğle içeriği gönderiliyor...")
     try:
-        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "Öğle")
+        tema = random.choice(OGLE_TEMALAR)
+        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "Öğle", tema)
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
-        log.info("✅ Öğle içeriği gönderildi.")
+        log.info(f"✅ Öğle içeriği gönderildi. (tema: {tema})")
     except Exception as e:
         log.error(f"❌ Öğle hatası: {e}")
 
@@ -332,9 +253,10 @@ async def ikindi_gonder():
     """Her gün 16:00 — Ayet + Hadis + Dua"""
     log.info("İkindi içeriği gönderiliyor...")
     try:
-        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "İkindi")
+        tema = random.choice(IKINDI_TEMALAR)
+        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "İkindi", tema)
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
-        log.info("✅ İkindi içeriği gönderildi.")
+        log.info(f"✅ İkindi içeriği gönderildi. (tema: {tema})")
     except Exception as e:
         log.error(f"❌ İkindi hatası: {e}")
 
@@ -355,9 +277,10 @@ async def persembe_gonder():
     log.info("Perşembe/Cuma içeriği gönderiliyor...")
     try:
         # 1. Sabah içeriği
-        sabah = await asyncio.to_thread(sabah_icerigi_uret)
+        tema = random.choice(SABAH_TEMALAR)
+        sabah = await asyncio.to_thread(sabah_icerigi_uret, tema)
         await bot.send_message(TELEGRAM_CHANNEL_ID, sabah)
-        log.info("✅ Sabah içeriği gönderildi.")
+        log.info(f"✅ Sabah içeriği gönderildi. (tema: {tema})")
 
         await asyncio.sleep(3)
 
