@@ -1,11 +1,10 @@
 """
 İslami İçerik Telegram Botu
 Zamanlama (Istanbul saati):
-  08:00 — Sabah: Olay + Ayet + Hadis + Dua + Vaaz + Reklam
-  12:00 — Öğle:  Ayet + Hadis + Dua + Reklam
-  15:00 — İkindi: Ayet + Hadis + Dua + Reklam
-  21:00 — Akşam/Yatsı: Ayet + Hadis + Dua + Reklam
-  Perşembe 20:00 — Sabah içeriği + Cuma Özel Vaazı + Reklam
+  08:00 — Sabah: Ayet + Hadis + Dua + Vaaz
+  12:00 — Öğle:  Ayet + Hadis + Dua
+  16:00 — İkindi: Ayet + Hadis + Dua
+  Perşembe 20:00 — Sabah içeriği + Cuma Özel Vaazı
 
 Kurulum:
   pip install aiogram anthropic apscheduler python-dotenv
@@ -19,9 +18,10 @@ Kurulum:
 import asyncio
 import json
 import logging
+import pathlib
 import re
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
 import os
 
@@ -74,65 +74,87 @@ bot       = Bot(
 dp        = Dispatcher()
 ai_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
-# ─── Claude API ────────────────────────────────────────────────────────────────
-
-def claude_iste(prompt: str, max_tokens: int = 2000) -> str:
-    mesaj = ai_client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=max_tokens,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return mesaj.content[0].text
-
 # ─── Kullanılan İçerik Takibi ─────────────────────────────────────────────────
 
-USED_CONTENT_FILE = "used_content.json"
+_data_dir = pathlib.Path("/app/data")
+try:
+    _data_dir.mkdir(parents=True, exist_ok=True)
+    USED_CONTENT_FILE = _data_dir / "used_content.json"
+except OSError:
+    USED_CONTENT_FILE = pathlib.Path("used_content.json")
 
-def used_content_yukle() -> list:
-    if not os.path.exists(USED_CONTENT_FILE):
-        return []
+MAX_USED = 50
+
+def _used_yukle() -> dict:
     try:
         with open(USED_CONTENT_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-        sinir = (datetime.now() - timedelta(days=30)).isoformat()
-        return [item for item in data if item.get("tarih", "") > sinir]
+        if isinstance(data, dict) and "ayetler" in data:
+            return data
     except Exception:
-        return []
+        pass
+    return {"ayetler": [], "hadisler": []}
 
-def used_content_kaydet(ayet_ref: str, hadis_ref: str):
-    data = used_content_yukle()
-    data.append({
-        "tarih": datetime.now().isoformat(),
-        "ayet": ayet_ref,
-        "hadis": hadis_ref,
-    })
+def _used_kaydet(ayet: str | None, hadis: str | None):
+    data = _used_yukle()
+    if ayet:
+        data["ayetler"].append(ayet)
+        if len(data["ayetler"]) > MAX_USED:
+            data["ayetler"] = data["ayetler"][-MAX_USED:]
+    if hadis:
+        data["hadisler"].append(hadis)
+        if len(data["hadisler"]) > MAX_USED:
+            data["hadisler"] = data["hadisler"][-MAX_USED:]
     try:
         with open(USED_CONTENT_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
         log.error(f"used_content.json yazma hatası: {e}")
 
-def used_list_al() -> str:
-    data = used_content_yukle()
-    if not data:
-        return "Henüz kayıtlı kullanım yok."
-    return "\n".join(
-        f"- Ayet: {item.get('ayet', '?')} | Hadis: {item.get('hadis', '?')}"
-        for item in data
+# ─── Claude API ────────────────────────────────────────────────────────────────
+
+def claude_iste(prompt: str, max_tokens: int = 2000) -> str:
+    used = _used_yukle()
+
+    # Kullanılmış listeyi prompt'un başına ekle
+    parts = []
+    if used["ayetler"]:
+        parts.append("Ayetler: " + ", ".join(used["ayetler"]))
+    if used["hadisler"]:
+        parts.append("Hadisler: " + ", ".join(used["hadisler"]))
+    if parts:
+        used_str = "\n".join(parts)
+        prompt = (
+            f"KESİNLİKLE şu ayet ve hadisleri KULLANMA:\n{used_str}\n"
+            f"Tamamen farklı ayet ve hadis seç.\n\n"
+        ) + prompt
+
+    # İçerikten sonra referans satırları iste
+    prompt += (
+        "\n\nİçeriği verdikten sonra en sona şu iki satırı ekle "
+        "(başka hiçbir şey ekleme):\n"
+        "KULLANILAN_AYET: [sure:ayet_no, örn: Bakara:255]\n"
+        "KULLANILAN_HADİS: [kaynak, örn: Buhari:İman1]"
     )
 
-def referans_cikart_ve_kaydet(icerik: str) -> str:
-    """İçerikten REFERANSLAR bloğunu parse eder, kaydeder ve temiz metni döndürür."""
-    ayet_ref = "bilinmiyor"
-    hadis_ref = "bilinmiyor"
-    ayet_match = re.search(r"AYET:\s*(.+)", icerik)
-    hadis_match = re.search(r"HADİS_REF:\s*(.+)", icerik)
-    if ayet_match:
-        ayet_ref = ayet_match.group(1).strip()
-    if hadis_match:
-        hadis_ref = hadis_match.group(1).strip()
-    used_content_kaydet(ayet_ref, hadis_ref)
-    return re.sub(r"\n*---REFERANSLAR---.*", "", icerik, flags=re.DOTALL).strip()
+    mesaj = ai_client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=max_tokens,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    raw = mesaj.content[0].text
+
+    # Referansları çıkar ve kaydet
+    ayet_m = re.search(r"KULLANILAN_AYET:\s*(.+)", raw)
+    hadis_m = re.search(r"KULLANILAN_HADİS:\s*(.+)", raw)
+    _used_kaydet(
+        ayet_m.group(1).strip() if ayet_m else None,
+        hadis_m.group(1).strip() if hadis_m else None,
+    )
+
+    # Referans satırlarını temizleyip döndür
+    clean = re.sub(r"\n*KULLANILAN_AYET:.*", "", raw, flags=re.DOTALL).strip()
+    return clean
 
 # ─── Günlük Tema ──────────────────────────────────────────────────────────────
 
@@ -169,14 +191,7 @@ def ayet_hadis_dua_uret(vakit: str) -> str:
     """Öğle, İkindi için kısa içerik üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
     tema = gunun_temasi()
-    used_list = used_list_al()
     prompt = f"""
-Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
-
-Daha önce kullanılan ayetler ve hadisler:
-{used_list}
-Bu listedekilerden HİÇBİRİNİ kullanma, tamamen farklı seç.
-
 Bugünün tarihi: {bugun}, Vakit: {vakit}, Günün teması: {tema}
 
 Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
@@ -195,12 +210,9 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 🤲 *{vakit.upper()} DUASI*
 [Vakitle ilgili kısa dua — sadece Türkçe]
 
-ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
+ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, rastgele ama anlamlı bir ayet ve hadis seç.
 
-Sadece içeriği yaz, başka açıklama ekleme. Ardından şu bloğu ekle (kullanıcıya gösterilmeyecek):
----REFERANSLAR---
-AYET: [kullandığın ayetin sure adı ve ayet numarası, örn: Bakara, 286]
-HADİS_REF: [kullandığın hadisin kaynağı, örn: Buhari, İman 1]
+Sadece içeriği yaz, başka açıklama ekleme.
 """
     return claude_iste(prompt, max_tokens=1100)
 
@@ -209,14 +221,7 @@ def sabah_icerigi_uret() -> str:
     """Sabah için ayet + hadis + dua + vaaz üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
     tema = gunun_temasi()
-    used_list = used_list_al()
     prompt = f"""
-Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
-
-Daha önce kullanılan ayetler ve hadisler:
-{used_list}
-Bu listedekilerden HİÇBİRİNİ kullanma, tamamen farklı seç.
-
 Bugünün tarihi: {bugun}, Günün teması: {tema}
 
 Her gün farklı ayet ve hadis seç, bir önceki günle aynı olmasın.
@@ -247,12 +252,9 @@ Markdown kullan (Telegram uyumlu: *kalın*, _italik_).
 - Kısa ve anlaşılır cümleler kur
 - Okuyucuya "siz", "bizler", "kardeşlerim" diye hitap et]
 
-ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
+ÖNEMLİ: Bugünün tarihi {bugun}. Rastgele ama anlamlı bir ayet ve hadis seç.
 
-Sadece içeriği yaz, başka açıklama ekleme. Ardından şu bloğu ekle (kullanıcıya gösterilmeyecek):
----REFERANSLAR---
-AYET: [kullandığın ayetin sure adı ve ayet numarası, örn: Bakara, 286]
-HADİS_REF: [kullandığın hadisin kaynağı, örn: Buhari, İman 1]
+Sadece içeriği yaz, başka açıklama ekleme.
 """
     return claude_iste(prompt, max_tokens=1900)
 
@@ -260,14 +262,7 @@ HADİS_REF: [kullandığın hadisin kaynağı, örn: Buhari, İman 1]
 def cuma_vaazi_uret() -> str:
     """Perşembe akşamı için derin Cuma vaazı üretir."""
     bugun = datetime.now().strftime("%d %B %Y")
-    used_list = used_list_al()
     prompt = f"""
-Şu ana kadar kullanılmış olabilecek konulardan KAÇIN: sabır, şükür, ilim. Farklı bir konu seç.
-
-Daha önce kullanılan ayetler ve hadisler:
-{used_list}
-Bu listedekilerden HİÇBİRİNİ kullanma, tamamen farklı seç.
-
 Bugünün tarihi: {bugun} (Perşembe — yarın Cuma)
 
 Türkçe, 500-600 kelimelik bir Cuma vaazı yaz.
@@ -305,12 +300,7 @@ Vaaz tarzı şöyle olsun:
 
 Tema bu haftanın ruhuna uygun seç: sabır, şükür, tevbe, merhamet, kul hakkı, ihlas vb.
 
-ÖNEMLİ: Bugünün tarihi {bugun}. Bu tarihe özel, daha önce kullanılmamış farklı bir ayet, hadis ve konu seç. Aynı ayeti, hadisi veya konuyu tekrar kullanma. Rastgele ama anlamlı bir seçim yap.
-
-Sadece vaazı yaz, başka açıklama ekleme. Ardından şu bloğu ekle (kullanıcıya gösterilmeyecek):
----REFERANSLAR---
-AYET: [kullandığın ana ayetin sure adı ve ayet numarası]
-HADİS_REF: [kullandığın ana hadisin kaynağı]
+Sadece vaazı yaz, başka açıklama ekleme.
 """
     return claude_iste(prompt, max_tokens=2600)
 
@@ -320,8 +310,7 @@ async def sabah_gonder():
     """Her gün 08:00 — Ayet + Hadis + Dua + Vaaz"""
     log.info("Sabah içeriği gönderiliyor...")
     try:
-        ham = await asyncio.to_thread(sabah_icerigi_uret)
-        icerik = await asyncio.to_thread(referans_cikart_ve_kaydet, ham)
+        icerik = await asyncio.to_thread(sabah_icerigi_uret)
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
         log.info("✅ Sabah içeriği gönderildi.")
     except Exception as e:
@@ -332,8 +321,7 @@ async def ogle_gonder():
     """Her gün 12:00 — Ayet + Hadis + Dua"""
     log.info("Öğle içeriği gönderiliyor...")
     try:
-        ham = await asyncio.to_thread(ayet_hadis_dua_uret, "Öğle")
-        icerik = await asyncio.to_thread(referans_cikart_ve_kaydet, ham)
+        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "Öğle")
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
         log.info("✅ Öğle içeriği gönderildi.")
     except Exception as e:
@@ -344,8 +332,7 @@ async def ikindi_gonder():
     """Her gün 16:00 — Ayet + Hadis + Dua"""
     log.info("İkindi içeriği gönderiliyor...")
     try:
-        ham = await asyncio.to_thread(ayet_hadis_dua_uret, "İkindi")
-        icerik = await asyncio.to_thread(referans_cikart_ve_kaydet, ham)
+        icerik = await asyncio.to_thread(ayet_hadis_dua_uret, "İkindi")
         await bot.send_message(TELEGRAM_CHANNEL_ID, icerik)
         log.info("✅ İkindi içeriği gönderildi.")
     except Exception as e:
@@ -368,16 +355,14 @@ async def persembe_gonder():
     log.info("Perşembe/Cuma içeriği gönderiliyor...")
     try:
         # 1. Sabah içeriği
-        ham_sabah = await asyncio.to_thread(sabah_icerigi_uret)
-        sabah = await asyncio.to_thread(referans_cikart_ve_kaydet, ham_sabah)
+        sabah = await asyncio.to_thread(sabah_icerigi_uret)
         await bot.send_message(TELEGRAM_CHANNEL_ID, sabah)
         log.info("✅ Sabah içeriği gönderildi.")
 
         await asyncio.sleep(3)
 
         # 2. Cuma vaazı
-        ham_vaaz = await asyncio.to_thread(cuma_vaazi_uret)
-        vaaz = await asyncio.to_thread(referans_cikart_ve_kaydet, ham_vaaz)
+        vaaz = await asyncio.to_thread(cuma_vaazi_uret)
         await bot.send_message(TELEGRAM_CHANNEL_ID, vaaz)
         log.info("✅ Cuma vaazı gönderildi.")
 
@@ -417,7 +402,7 @@ async def komutlar(message: Message):
         await message.answer(
             "🤖 *İslami İçerik Botu Aktif*\n\n"
             "📅 Günlük program:\n"
-            "• 08:00 — Olay + Ayet + Hadis + Dua + Vaaz\n"
+            "• 08:00 — Ayet + Hadis + Dua + Vaaz\n"
             "• 12:00 — Öğle Ayeti + Hadis + Dua\n"
             "• 16:00 — İkindi Ayeti + Hadis + Dua\n"
             "• Perşembe 20:00 — Sabah içeriği + Cuma Vaazı\n\n"
