@@ -75,6 +75,12 @@ ai_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 # ─── Claude API ────────────────────────────────────────────────────────────────
 
 def claude_iste(prompt: str, max_tokens: int = 2000) -> str:
+    gun, sure, konu = gun_sure_konu_al()
+    prompt += (
+        f"\n\nBugün {gun}, bu haftanın konusu {konu}.\n"
+        f"SADECE {sure} Suresi'nden ayet seç.\n"
+        f"Geçen haftalarda kullanılmış ayetlerden farklı ol."
+    )
     prompt += "\n\nBakara 155. ayet ile Buhari Merda 1 hadisini KULLANMA."
     mesaj = ai_client.messages.create(
         model="claude-sonnet-4-6",
@@ -82,6 +88,33 @@ def claude_iste(prompt: str, max_tokens: int = 2000) -> str:
         messages=[{"role": "user", "content": prompt}]
     )
     return mesaj.content[0].text
+
+# ─── Haftalık Sure ve Konu Sistemi ─────────────────────────────────────────────
+
+SURE_LISTESI = {
+    "Monday": "Nisa",
+    "Tuesday": "Maide",
+    "Wednesday": "Enam",
+    "Thursday": "Araf",
+    "Friday": "Enfal",
+    "Saturday": "Tevbe",
+    "Sunday": "Yunus"
+}
+
+HAFTA_KONU = {
+    1: "aile ve akrabalık",
+    2: "ibadet ve kulluk",
+    3: "ahlak ve muamelat",
+    4: "ahiret ve hesap"
+}
+
+def gun_sure_konu_al():
+    simdi = datetime.now()
+    gun = simdi.strftime("%A")
+    hafta = min((simdi.day - 1) // 7 + 1, 4)
+    sure = SURE_LISTESI[gun]
+    konu = HAFTA_KONU[hafta]
+    return gun, sure, konu
 
 # ─── Tema Listeleri ────────────────────────────────────────────────────────────
 
