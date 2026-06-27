@@ -82,6 +82,12 @@ def claude_iste(prompt: str, max_tokens: int = 2000) -> str:
         f"Geçen haftalarda kullanılmış ayetlerden farklı ol."
     )
     prompt += "\n\nBakara 155. ayet ile Buhari Merda 1 hadisini KULLANMA."
+    prompt += (
+        "\n\nÖNEMLİ: Sadece nihai ve temiz içeriği yaz. Taslak yazma, kendi kendini "
+        "düzeltme, 'dur', 'yeniden', 'tema ... Sure ...' gibi iç değerlendirme veya "
+        "açıklama metinleri ASLA ekleme. Tema ile Sure arasında uyumsuzluk olsa bile "
+        "yorum yapmadan, Sure kısıtına uyan en yakın ayeti seçip tek ve net bir cevap ver."
+    )
     mesaj = ai_client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=max_tokens,
