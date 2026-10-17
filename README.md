@@ -1,105 +1,106 @@
-# Din Botu — İslami İçerik Telegram Botu
+# Din Botu — Islamic Content Telegram Bot
 
-Telegram kanalına günlük otomatik İslami içerik (ayet, hadis, dua, vaaz) gönderen yapay zeka destekli bot.
+An AI-powered Telegram bot that automatically sends daily Islamic content (Quran verses, hadiths, prayers, sermons) to a channel.
 
-## Özellikler
+## Features
 
-- **Günlük İçerik:** Sabah, öğle ve ikindi vakitlerinde ayet (Arapça + Türkçe meal), hadis (Arapça + Türkçe çeviri) ve vakitle ilgili dua gönderir
-- **Sabah Vaazı:** Her sabah günün temasına uygun, din hocası sohbet tarzında vaaz üretir
-- **Cuma Vaazı:** Perşembe akşamı özel detaylı Cuma vaazı gönderir
-- **Haftalık Sure Rotasyonu:** Her güne sabit bir Kur'an suresi atanmıştır (Nisa, Maide, Enam, Araf, Enfal, Tevbe, Yunus)
-- **Aylık Konu Rotasyonu:** Ayın her haftasında farklı bir ana tema işlenir (aile, ibadet, ahlak, ahiret)
-- **Tema Çeşitliliği:** 20 farklı tema arasından rastgele seçim yapılır (sabır, şükür, tevbe, merhamet vb.)
-- **Admin Komutları:** Telegram üzerinden test ve gönderim komutları
+- **Daily Content:** Sends Quran verses (Arabic + Turkish translation), hadiths (Arabic + Turkish translation), and time-specific prayers at morning, noon, and afternoon
+- **Morning Sermon:** Generates a daily themed sermon in a warm, conversational imam style
+- **Friday Sermon:** Sends a detailed special Friday sermon on Thursday evening
+- **Weekly Surah Rotation:** Each day is assigned a fixed Quran chapter (An-Nisa, Al-Ma'idah, Al-An'am, Al-A'raf, Al-Anfal, At-Tawbah, Yunus)
+- **Monthly Topic Rotation:** Each week of the month focuses on a different theme (family, worship, morality, afterlife)
+- **Theme Variety:** Random selection from 20 different themes (patience, gratitude, repentance, mercy, etc.)
+- **Admin Commands:** Test and send commands via Telegram
 
-## Zamanlama (Istanbul Saati)
+## Schedule (Istanbul Time)
 
-| Saat | İçerik |
-|------|--------|
-| 08:00 (Pzt-Çar, Cum-Paz) | Ayet + Hadis + Dua + Vaaz |
-| 12:00 (Her gün) | Ayet + Hadis + Dua |
-| 16:00 (Her gün) | Ayet + Hadis + Dua |
-| 20:00 (Perşembe) | Sabah içeriği + Cuma Özel Vaazı |
+| Time | Content |
+|------|---------|
+| 08:00 (Mon-Wed, Fri-Sun) | Verse + Hadith + Prayer + Sermon |
+| 12:00 (Every day) | Verse + Hadith + Prayer |
+| 16:00 (Every day) | Verse + Hadith + Prayer |
+| 20:00 (Thursday) | Morning content + Special Friday Sermon |
 
-## Kullanılan Teknolojiler
+## Tech Stack
 
 - **Python 3.11+**
 - **aiogram 3** — Telegram Bot API framework
-- **Anthropic Claude API** — Yapay zeka ile içerik üretimi
-- **APScheduler** — Zamanlanmış görev yönetimi
-- **python-dotenv** — Ortam değişkenleri yönetimi
+- **Anthropic Claude API** — AI-powered content generation
+- **APScheduler** — Scheduled task management
+- **python-dotenv** — Environment variable management
 
-## Kurulum
+## Setup
 
-### 1. Repoyu klonla
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/Hasankr-27/din-botu.git
 cd din-botu
 ```
 
-### 2. Bağımlılıkları kur
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Ortam değişkenlerini ayarla
+### 3. Configure environment variables
 
-`.env.example` dosyasını kopyala ve değerleri doldur:
+Copy `.env.example` and fill in your values:
 
 ```bash
 cp .env.example .env
 ```
 
 ```env
-TELEGRAM_BOT_TOKEN=botfather_token
-TELEGRAM_CHANNEL_ID=@kanal_adi
-ANTHROPIC_API_KEY=anthropic_api_key
-ADMIN_ID=telegram_kullanici_id
+TELEGRAM_BOT_TOKEN=your_botfather_token
+TELEGRAM_CHANNEL_ID=@your_channel
+ANTHROPIC_API_KEY=your_anthropic_api_key
+ADMIN_ID=your_telegram_user_id
 ```
 
-- **TELEGRAM_BOT_TOKEN:** [@BotFather](https://t.me/BotFather) üzerinden alınır
-- **TELEGRAM_CHANNEL_ID:** Kanalın kullanıcı adı (örn: `@islamikanal`)
-- **ANTHROPIC_API_KEY:** [Anthropic Console](https://console.anthropic.com/) üzerinden alınır
-- **ADMIN_ID:** Bot komutlarını kullanacak Telegram kullanıcı ID'si
+- **TELEGRAM_BOT_TOKEN:** Obtained from [@BotFather](https://t.me/BotFather)
+- **TELEGRAM_CHANNEL_ID:** Your channel username (e.g. `@islamchannel`)
+- **ANTHROPIC_API_KEY:** Obtained from [Anthropic Console](https://console.anthropic.com/)
+- **ADMIN_ID:** Telegram user ID authorized to use bot commands
 
-### 4. Botu başlat
+### 4. Run the bot
 
 ```bash
 python bot.py
 ```
 
-### 5. Test et
+### 5. Test
 
-Telegram'da bota şu komutları gönder:
+Send these commands to your bot on Telegram:
 
-| Komut | Açıklama |
-|-------|----------|
-| `/start` | Bot bilgisi |
-| `/test_sabah` | Sabah içeriği önizleme |
-| `/test_ogle` | Öğle içeriği önizleme |
-| `/test_ikindi` | İkindi içeriği önizleme |
-| `/test_cuma` | Cuma vaazı önizleme |
-| `/test_gonder` | Kanala gerçek gönderim |
+| Command | Description |
+|---------|-------------|
+| `/start` | Bot info |
+| `/test_sabah` | Preview morning content |
+| `/test_ogle` | Preview noon content |
+| `/test_ikindi` | Preview afternoon content |
+| `/test_cuma` | Preview Friday sermon |
+| `/test_gonder` | Send to channel |
 
-## Proje Yapısı
+## Project Structure
 
 ```
 din-botu/
-├── bot.py              # Ana bot dosyası
-├── requirements.txt    # Python bağımlılıkları
-├── runtime.txt         # Python sürümü
-├── .env.example        # Ortam değişkenleri şablonu
+├── bot.py              # Main bot file
+├── requirements.txt    # Python dependencies
+├── runtime.txt         # Python version
+├── .env.example        # Environment variables template
 ├── .gitignore
-├── KURULUM.md          # Detaylı kurulum rehberi
-└── README.md
+├── KURULUM.md          # Setup guide (Turkish)
+├── README.md           # README (Turkish)
+└── README_EN.md        # README (English)
 ```
 
-## Deploy
+## Deployment
 
-Bot, [Railway](https://railway.app/) gibi platformlarda deploy edilebilir. `runtime.txt` dosyası Python sürümünü belirtir.
+The bot can be deployed on platforms like [Railway](https://railway.app/). The `runtime.txt` file specifies the Python version.
 
-## Lisans
+## License
 
-Bu proje eğitim amaçlıdır.
+This project is for educational purposes.
