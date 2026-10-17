@@ -1,4 +1,4 @@
-# Din Botu — Islamic Content Telegram Bot
+# Telegram Automation Bot — Islamic Content
 
 An AI-powered Telegram bot that automatically sends daily Islamic content (Quran verses, hadiths, prayers, sermons) to a channel.
 
@@ -34,8 +34,8 @@ An AI-powered Telegram bot that automatically sends daily Islamic content (Quran
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Hasankr-27/din-botu.git
-cd din-botu
+git clone https://github.com/Hasankr-27/telegram-automation-bot.git
+cd telegram-automation-bot
 ```
 
 ### 2. Install dependencies
@@ -86,7 +86,7 @@ Send these commands to your bot on Telegram:
 ## Project Structure
 
 ```
-din-botu/
+telegram-automation-bot/
 ├── bot.py              # Main bot file
 ├── requirements.txt    # Python dependencies
 ├── runtime.txt         # Python version

@@ -1,4 +1,4 @@
-# Din Botu — İslami İçerik Telegram Botu
+# Telegram Automation Bot — İslami İçerik
 
 Telegram kanalına günlük otomatik İslami içerik (ayet, hadis, dua, vaaz) gönderen yapay zeka destekli bot.
 
@@ -34,8 +34,8 @@ Telegram kanalına günlük otomatik İslami içerik (ayet, hadis, dua, vaaz) g�
 ### 1. Repoyu klonla
 
 ```bash
-git clone https://github.com/Hasankr-27/din-botu.git
-cd din-botu
+git clone https://github.com/Hasankr-27/telegram-automation-bot.git
+cd telegram-automation-bot
 ```
 
 ### 2. Bağımlılıkları kur
@@ -86,7 +86,7 @@ Telegram'da bota şu komutları gönder:
 ## Proje Yapısı
 
 ```
-din-botu/
+telegram-automation-bot/
 ├── bot.py              # Ana bot dosyası
 ├── requirements.txt    # Python bağımlılıkları
 ├── runtime.txt         # Python sürümü
