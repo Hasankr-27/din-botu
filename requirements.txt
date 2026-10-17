@@ -1,6 +1,13 @@
+<<<<<<< HEAD
 aiogram==3.7.0
 anthropic
 apscheduler
 python-dotenv
 pydantic==2.7.4
 pydantic-core==2.18.4
+=======
+aiogram
+anthropic
+apscheduler
+python-dotenv
+>>>>>>> 271c96ed193ea096a84d833394035821315dd2b1
